@@ -1,0 +1,5 @@
+build/
+compiler
+test/*.s
+test/*.out
+*.o

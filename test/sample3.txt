@@ -1,0 +1,10 @@
+program expr
+    var a,b,c:integer;
+begin
+    a:=1+2*3;
+    b:=(a+4)*2;
+    c:=b-a;
+    write a;
+    write b;
+    write c
+end.

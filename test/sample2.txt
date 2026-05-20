@@ -1,0 +1,14 @@
+program iftest
+    var x,y:integer;
+begin
+    x:=10;
+    y:=0;
+    if x>5 then
+        y:=1
+    else
+        y:=2;
+    write y;
+    while y<10 do
+        y:=y+1;
+    write y
+end.
