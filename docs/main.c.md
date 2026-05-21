@@ -2,9 +2,9 @@
 
 ## 简明解释
 
-- CLI mode (`read_file`, `read_stdin`, `main`): No-arg → `run_gtk` GUI. With file arg → `read_file` → `parser_parse` → output token/symbol/const/quad tables → `optimize_run` → `codegen_generate` → print gcc command.
-- GTK3 GUI mode (`#ifdef USE_GTK`): 5-tab notebook (Token/Symbol/Quad/Assembly/Run), file open button, compile button, gcc compile+run button. `on_compile_clicked` runs full pipeline and fills all tabs. `on_gcc_clicked` popen's gcc to assemble+link and runs the executable.
-- Constants: output buffers are 16KB on stack, GTK uses `/tmp/opencode/` for temp files.
+- CLI 模式（`read_file`、`read_stdin`、`main`）：无参数 → 启动 `run_gtk` 图形界面。带文件参数 → `read_file` → `parser_parse` → 输出词法单元/符号/常数/四元式表 → `optimize_run` → `codegen_generate` → 打印 gcc 命令。
+- GTK3 图形界面模式（`#ifdef USE_GTK`）：5 标签页笔记本（词法单元/符号表/四元式/汇编代码/运行输出），文件打开按钮，编译按钮，gcc 编译运行按钮。`on_compile_clicked` 执行完整流水线并填充所有标签页。`on_gcc_clicked` 通过 popen 调用 gcc 汇编链接并运行生成的可执行文件。
+- 常量说明：输出缓冲区为栈上 16KB，GTK 使用 `/tmp/opencode/` 存放临时文件。
 
 ---
 

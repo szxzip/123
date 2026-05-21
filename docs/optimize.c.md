@@ -2,12 +2,12 @@
 
 ## 简明解释
 
-- `is_int_const` / `const_val`: helpers for checking/parsing integer constant strings
-- `fold_constants()`: scans quad list, when both operands of +-*/ are int constants, computes result at compile time and replaces the arithmetic quad with `:=` assignment quad. Eg: `(*, 2, 5, t1)` → `(:=, 10, _, t1)`. Division by zero is skipped.
-- `propagate_constants()`: finds `(:=, C, _, var)` patterns, then searches forward replacing uses of `var` with `C`. Stops when `var` is re-assigned or at write/end. Enables chained folding.
-- `eliminate_dead_code()`: counts variable usage across all quads, marks KIND_TEMP assignments with 0 uses for deletion, compacts the quad array. Removes intermediate results that are never consumed.
-- `optimize_run()`: up to 5 passes, each running propagate→fold→eliminate until no changes (fixed-point iteration). The order matters: propagation enables more folding, folding may create dead code.
-- Compiler principles: These are machine-independent optimizations at the IR level. They don't require knowledge of x86 specifics. Multi-pass iteration is needed because each optimization can expose new opportunities for the others.
+- `is_int_const` / `const_val`：检查/解析整型常数字符串的辅助函数
+- `fold_constants()`：扫描四元式序列，当 +-*/ 的两个操作数均为整型常数时，在编译期计算结果，并将算术四元式替换为 `:=` 赋值四元式。例如：`(*, 2, 5, t1)` → `(:=, 10, _, t1)`。除以零的情况会被跳过。
+- `propagate_constants()`：寻找 `(:=, C, _, var)` 模式，然后向前搜索并将 `var` 的使用替换为 `C`。当 `var` 被重新赋值或遇到 write/end 时停止。使链式折叠成为可能。
+- `eliminate_dead_code()`：统计所有四元式中的变量使用次数，将使用次数为 0 的 KIND_TEMP 赋值标记删除，压缩四元式数组。移除从未被消费的中间结果。
+- `optimize_run()`：最多 5 遍迭代，每遍依次执行 传播→折叠→消除，直至不再有变化（不动点迭代）。顺序至关重要：传播使更多折叠成为可能，折叠可能产生死代码。
+- 编译器原理：这些是与机器无关的 IR 级别优化，不需要了解 x86 细节。需要多遍迭代是因为每种优化都可能为其他优化暴露新的机会。
 
 ---
 

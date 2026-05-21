@@ -2,7 +2,7 @@
 
 ## 简明解释
 
-- Single function `codegen_generate()`. Comment lists the quad→x86-64 mapping for each opcode.
+- 单一函数 `codegen_generate()`。注释列出了每种操作码的四元式到 x86-64 的映射。
 
 ---
 

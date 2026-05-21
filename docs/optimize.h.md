@@ -2,7 +2,7 @@
 
 ## 简明解释
 
-- Single public function `optimize_run()`. The comment lists the 3 optimizations: constant folding, constant propagation, dead code elimination.
+- 仅有一个公开函数 `optimize_run()`。注释中列出了 3 种优化：常量折叠、常量传播、死代码消除。
 
 ---
 
