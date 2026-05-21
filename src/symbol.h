@@ -2,15 +2,15 @@
 #define SYMBOL_H
 #include "grammar.h"
 
-/* ========== 模块说明 ==========
- * symbol.c/h — 符号表与常数表管理
- *   对应课程要求: 符号表系统（活动记录、主表、常数表）
- *   功能:
- *     - 标识符查填 (enter_id / lookup_id)
- *     - 常数查填 (enter_const / lookup_const)
- *     - 临时变量分配 (new_temp)
- *     - 符号表打印
- * ================================ */
+// ========== 模块说明 ==========
+// * symbol.c/h — 符号表与常数表管理
+// *   对应课程要求: 符号表系统（活动记录、主表、常数表）
+// *   功能:
+// *     - 标识符查填 (enter_id / lookup_id)
+// *     - 常数查填 (enter_const / lookup_const)
+// *     - 临时变量分配 (new_temp)
+// *     - 符号表打印
+// * ================================
 
 void sym_init(Compiler *c);
 int  sym_enter_id(Compiler *c, const char *name, int type, int kind, int offset);

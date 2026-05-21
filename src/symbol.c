@@ -1,10 +1,10 @@
 #include "symbol.h"
 #include <math.h>
 
-/* 类型名称 (在 grammar.h 中声明为 extern) */
+// 类型名称 (在 grammar.h 中声明为 extern)
 const char *type_names[] = { "integer", "real", "char" };
 
-/* 初始化符号表 */
+// 初始化符号表
 void sym_init(Compiler *c) {
     c->sym_count = 0;
     c->const_count = 0;
@@ -18,15 +18,15 @@ void sym_init(Compiler *c) {
     memset(c->sem_stack, 0, sizeof(c->sem_stack));
 }
 
-/* 填写符号表: 查到了返回索引, 否则插入尾部 */
+// 填写符号表: 查到了返回索引, 否则插入尾部
 int sym_enter_id(Compiler *c, const char *name, int type, int kind, int offset) {
     int i;
-    /* 先查找 */
+    // 先查找
     for (i = 0; i < c->sym_count; i++) {
         if (strcmp(c->sym_table[i].name, name) == 0)
             return i;
     }
-    /* 未找到, 插入 */
+    // 未找到, 插入
     if (c->sym_count >= MAX_SYMBOLS) return -1;
     i = c->sym_count++;
     strncpy(c->sym_table[i].name, name, MAX_NAME - 1);
@@ -37,7 +37,7 @@ int sym_enter_id(Compiler *c, const char *name, int type, int kind, int offset) 
     return i;
 }
 
-/* 查找标识符, 返回索引, 未找到返回 -1 */
+// 查找标识符, 返回索引, 未找到返回 -1
 int sym_lookup_id(Compiler *c, const char *name) {
     int i;
     for (i = 0; i < c->sym_count; i++) {
@@ -47,7 +47,7 @@ int sym_lookup_id(Compiler *c, const char *name) {
     return -1;
 }
 
-/* 设置符号类型信息 (用于变量声明中的 a3/a4/a5 语义动作) */
+// 设置符号类型信息 (用于变量声明中的 a3/a4/a5 语义动作)
 void sym_set_type(Compiler *c, int index, int type, int len, int offset) {
     if (index < 0 || index >= c->sym_count) return;
     c->sym_table[index].type = type;
@@ -55,7 +55,7 @@ void sym_set_type(Compiler *c, int index, int type, int len, int offset) {
     c->sym_table[index].offset = offset;
 }
 
-/* 常数表: 查到了返回索引, 否则插入 */
+// 常数表: 查到了返回索引, 否则插入
 int sym_enter_const(Compiler *c, double val) {
     int i;
     for (i = 0; i < c->const_count; i++) {
@@ -68,7 +68,7 @@ int sym_enter_const(Compiler *c, double val) {
     return i;
 }
 
-/* 查找常数 */
+// 查找常数
 int sym_lookup_const(Compiler *c, double val) {
     int i;
     for (i = 0; i < c->const_count; i++) {
@@ -78,22 +78,22 @@ int sym_lookup_const(Compiler *c, double val) {
     return -1;
 }
 
-/* 分配临时变量, 返回名称 (如 "t1", "t2") */
+// 分配临时变量, 返回名称 (如 "t1", "t2")
 char *sym_new_temp(Compiler *c) {
     static char buf[MAX_NAME];
     c->temp_count++;
     snprintf(buf, MAX_NAME, "t%d", c->temp_count);
-    /* 在符号表中登记临时变量 */
+    // 在符号表中登记临时变量
     sym_enter_id(c, buf, c->cur_type, KIND_TEMP, c->cur_offset);
     return buf;
 }
 
-/* 分配新标号, 返回编号 */
+// 分配新标号, 返回编号
 int sym_new_label(Compiler *c) {
     return ++c->label_count;
 }
 
-/* 输出符号表 */
+// 输出符号表
 void sym_dump(Compiler *c, char *buf, int bufsize) {
     int i, pos = 0;
     pos += snprintf(buf + pos, bufsize - pos,
@@ -112,7 +112,7 @@ void sym_dump(Compiler *c, char *buf, int bufsize) {
     }
 }
 
-/* 输出常数表 */
+// 输出常数表
 void const_dump(Compiler *c, char *buf, int bufsize) {
     int i, pos = 0;
     pos += snprintf(buf + pos, bufsize - pos,

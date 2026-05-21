@@ -1,22 +1,20 @@
-/*
- * main.c — 编译器前端主程序
- *
- * 对应课程要求: 编译器前端设计与实现
- *
- * 模块对应:
- *   [词法分析] -> scanner.c (常数自动机 + 关键字/界符表)
- *   [符号表]   -> symbol.c  (标识符/常数查填, 临时变量分配)
- *   [四元式]   -> quadruple.c (中间代码生成)
- *   [语法分析] -> parser.c (递归下降子程序 + 表达式分析)
- *   [语义分析] -> parser.c 内置语义动作 (a1~a6 翻译文法)
- *
- * 运行方式:
- *   编译: make
- *   运行: ./compiler <source_file>         (CLI 模式)
- *         ./compiler                        (CLI 交互模式)
- *
- * 如有 GTK3: make GUI=1 编译图形界面版本
- */
+// * main.c — 编译器前端主程序
+// *
+// * 对应课程要求: 编译器前端设计与实现
+// *
+// * 模块对应:
+// *   [词法分析] -> scanner.c (常数自动机 + 关键字/界符表)
+// *   [符号表]   -> symbol.c  (标识符/常数查填, 临时变量分配)
+// *   [四元式]   -> quadruple.c (中间代码生成)
+// *   [语法分析] -> parser.c (递归下降子程序 + 表达式分析)
+// *   [语义分析] -> parser.c 内置语义动作 (a1~a6 翻译文法)
+// *
+// * 运行方式:
+// *   编译: make
+// *   运行: ./compiler <source_file>         (CLI 模式)
+// *         ./compiler                        (CLI 交互模式)
+// *
+// * 如有 GTK3: make GUI=1 编译图形界面版本
 
 #include "grammar.h"
 #include "scanner.h"
@@ -30,9 +28,9 @@
 
 static char *read_file(const char *filename);
 
-/* ================================================================
- * GTK3 图形界面
- * ================================================================ */
+// ================================================================
+// * GTK3 图形界面
+// * ================================================================
 
 static Compiler g_compiler;
 static GtkWidget *src_view, *token_view, *sym_view, *quad_view, *asm_view, *run_view;
@@ -72,7 +70,7 @@ static void on_compile_clicked(GtkWidget *widget, gpointer data) {
     sym_init(&g_compiler);
     quad_init(&g_compiler);
 
-    /* 读取源代码 */
+    // 读取源代码
     buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(src_view));
     GtkTextIter start, end;
     gtk_text_buffer_get_bounds(buf, &start, &end);
@@ -82,17 +80,17 @@ static void on_compile_clicked(GtkWidget *widget, gpointer data) {
     g_compiler.len = strlen(src_text);
     g_compiler.pos = 0;
 
-    /* 编译 */
+    // 编译
     int ok = parser_parse(&g_compiler);
 
     if (ok) {
-        /* 输出 Token 序列 */
+        // 输出 Token 序列
         char tbuf[8192];
         scanner_dump_tokens(&g_compiler, tbuf, sizeof(tbuf));
         buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(token_view));
         gtk_text_buffer_set_text(buf, tbuf, -1);
 
-        /* 输出符号表 + 常数表 */
+        // 输出符号表 + 常数表
         char sbuf[8192], cbuf[4096];
         sym_dump(&g_compiler, sbuf, sizeof(sbuf));
         const_dump(&g_compiler, cbuf, sizeof(cbuf));
@@ -100,17 +98,17 @@ static void on_compile_clicked(GtkWidget *widget, gpointer data) {
         buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(sym_view));
         gtk_text_buffer_set_text(buf, out_buf, -1);
 
-        /* 输出四元式 */
+        // 输出四元式
         char qbuf[8192];
         quad_dump(&g_compiler, qbuf, sizeof(qbuf));
         buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(quad_view));
         gtk_text_buffer_set_text(buf, qbuf, -1);
 
-        /* 优化 + 生成汇编 */
+        // 优化 + 生成汇编
         optimize_run(&g_compiler);
         codegen_generate(&g_compiler, "/tmp/opencode/compiler_output.s");
 
-        /* 显示汇编代码 */
+        // 显示汇编代码
         FILE *af = fopen("/tmp/opencode/compiler_output.s", "r");
         if (af) {
             char abuf[16384];
@@ -144,7 +142,7 @@ static void on_gcc_clicked(GtkWidget *widget, gpointer data) {
     char result[32768];
     int pos = 0;
 
-    /* 运行 gcc 编译 */
+    // 运行 gcc 编译
     pos += snprintf(result + pos, sizeof(result) - pos,
         "===== GCC 编译 =====\n");
     FILE *gcc = popen(
@@ -158,7 +156,7 @@ static void on_gcc_clicked(GtkWidget *widget, gpointer data) {
         if (status == 0) {
             pos += snprintf(result + pos, sizeof(result) - pos,
                 "GCC 编译成功\n\n");
-            /* 运行可执行文件 */
+            // 运行可执行文件
             pos += snprintf(result + pos, sizeof(result) - pos,
                 "===== 程序运行输出 =====\n");
             FILE *run = popen("/tmp/opencode/compiler_output 2>&1", "r");
@@ -197,11 +195,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_window_set_title(GTK_WINDOW(window), "编译器前端 - Compiler Frontend");
     gtk_window_set_default_size(GTK_WINDOW(window), 1000, 700);
 
-    /* 主布局: 垂直 */
+    // 主布局: 垂直
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
-    /* 上半部分: 源代码输入 */
+    // 上半部分: 源代码输入
     GtkWidget *src_label = gtk_label_new("源程序 (Source Code):");
     gtk_box_pack_start(GTK_BOX(vbox), src_label, FALSE, FALSE, 0);
     GtkWidget *src_scrolled = gtk_scrolled_window_new(NULL, NULL);
@@ -213,7 +211,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(src_scrolled), src_view);
     gtk_box_pack_start(GTK_BOX(vbox), src_scrolled, FALSE, FALSE, 0);
 
-    /* 按钮行 */
+    // 按钮行
     GtkWidget *hbox_btn = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     GtkWidget *btn_open = gtk_button_new_with_label("读取文件");
     g_signal_connect(btn_open, "clicked", G_CALLBACK(on_open_clicked), NULL);
@@ -226,7 +224,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_box_pack_start(GTK_BOX(hbox_btn), btn_gcc, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), hbox_btn, FALSE, FALSE, 5);
 
-    /* 下半部分: 输出 (Notebook) */
+    // 下半部分: 输出 (Notebook)
     GtkWidget *notebook = gtk_notebook_new();
     token_view = create_output_area("Token 序列", notebook);
     sym_view   = create_output_area("符号表/常数表", notebook);
@@ -246,9 +244,9 @@ void run_gtk(int argc, char **argv) {
     g_object_unref(app);
 }
 
-/* ================================================================
- * CLI 模式
- * ================================================================ */
+// ================================================================
+// * CLI 模式
+// * ================================================================
 
 static char *read_file(const char *filename) {
     FILE *f = fopen(filename, "r");
@@ -293,7 +291,7 @@ int main(int argc, char **argv) {
     sym_init(&c);
     quad_init(&c);
 
-    /* 读取源程序 */
+    // 读取源程序
     char *src;
     if (argc >= 2) {
         src = read_file(argv[1]);
@@ -309,34 +307,34 @@ int main(int argc, char **argv) {
 
     printf("========== 源程序 ==========\n%s\n", src);
 
-    /* 编译 */
+    // 编译
     int ok = parser_parse(&c);
 
     if (ok) {
-        /* 输出 Token 序列 */
+        // 输出 Token 序列
         char buf[16384];
         scanner_dump_tokens(&c, buf, sizeof(buf));
         printf("%s", buf);
 
-        /* 输出符号表 */
+        // 输出符号表
         sym_dump(&c, buf, sizeof(buf));
         printf("%s", buf);
 
-        /* 输出常数表 */
+        // 输出常数表
         const_dump(&c, buf, sizeof(buf));
         printf("%s", buf);
 
-        /* 输出四元式 (优化前) */
+        // 输出四元式 (优化前)
         quad_dump(&c, buf, sizeof(buf));
         printf("%s", buf);
 
-        /* 优化 */
+        // 优化
         optimize_run(&c);
         printf("\n===== 优化后四元式 =====\n");
         quad_dump(&c, buf, sizeof(buf));
         printf("%s", buf);
 
-        /* 生成 x86-64 目标代码 */
+        // 生成 x86-64 目标代码
         char asmfile[512];
         if (argc >= 2) {
             snprintf(asmfile, sizeof(asmfile), "%s.s", argv[1]);

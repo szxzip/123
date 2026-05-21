@@ -1,23 +1,23 @@
 #include "codegen.h"
 
-/* 判断操作数是否为常数 (字符串以数字或负号开头) */
+// 判断操作数是否为常数 (字符串以数字或负号开头)
 static int is_const_operand(const char *s) {
     if (!s || s[0] == '\0' || s[0] == '_') return 0;
     if (s[0] == '-' && s[1] >= '0' && s[1] <= '9') return 1;
     return (s[0] >= '0' && s[0] <= '9');
 }
 
-/* 将操作数字符串写入为汇编操作数
- * 常数 → $value ; 变量 → varname(%rip) */
+// 将操作数字符串写入为汇编操作数
+// * 常数 → $value ; 变量 → varname(%rip)
 static void write_cmp_set(FILE *f, const char *set_instr,
                           const char *a1, const char *a2, const char *r) {
-    /* 将 a1 加载到 %eax */
+    // 将 a1 加载到 %eax
     if (is_const_operand(a1)) {
         fprintf(f, "    movl    $%s, %%eax\n", a1);
     } else {
         fprintf(f, "    movl    %s(%%rip), %%eax\n", a1);
     }
-    /* 与 a2 比较 */
+    // 与 a2 比较
     if (is_const_operand(a2)) {
         fprintf(f, "    cmpl    $%s, %%eax\n", a2);
     } else {
@@ -35,12 +35,12 @@ void codegen_generate(Compiler *c, const char *outfile) {
         return;
     }
 
-    /* ---- 数据段: 格式串与变量 ---- */
+    // ---- 数据段: 格式串与变量 ----
     fprintf(f, "    .section .rodata\n");
     fprintf(f, ".fmt:\n");
     fprintf(f, "    .string \"%%d\\n\"\n\n");
 
-    /* 收集需要在 .bss 中分配的变量 (kind != KIND_PROGRAM) */
+    // 收集需要在 .bss 中分配的变量 (kind != KIND_PROGRAM)
     fprintf(f, "    .section .bss\n");
     int i, max_offset = 0;
     for (i = 0; i < c->sym_count; i++) {
@@ -54,7 +54,7 @@ void codegen_generate(Compiler *c, const char *outfile) {
     }
     fprintf(f, "\n");
 
-    /* ---- 代码段 ---- */
+    // ---- 代码段 ----
     fprintf(f, "    .section .text\n");
     fprintf(f, "    .globl  main\n");
     fprintf(f, "    .type   main, @function\n");
@@ -62,7 +62,7 @@ void codegen_generate(Compiler *c, const char *outfile) {
     fprintf(f, "    pushq   %%rbp\n");
     fprintf(f, "    movq    %%rsp, %%rbp\n\n");
 
-    /* 遍历四元式, 生成汇编 */
+    // 遍历四元式, 生成汇编
     for (i = 0; i < c->quad_count; i++) {
         Quadruple *q = &c->quads[i];
         const char *a1 = q->arg1;
@@ -75,12 +75,12 @@ void codegen_generate(Compiler *c, const char *outfile) {
         switch (q->op) {
 
         case OP_PROGRAM:
-            /* 无需额外代码, main 入口已在上面 */
+            // 无需额外代码, main 入口已在上面
             break;
 
         case OP_ASSIGN:
-            /* (:=, src, _, dst)
-             * movl src, %eax ; movl %eax, dst */
+            // (:=, src, _, dst)
+            // * movl src, %eax ; movl %eax, dst
             if (is_const_operand(a1)) {
                 fprintf(f, "    movl    $%s, %%eax\n", a1);
             } else {
@@ -137,9 +137,9 @@ void codegen_generate(Compiler *c, const char *outfile) {
             } else {
                 fprintf(f, "    movl    %s(%%rip), %%eax\n", a1);
             }
-            fprintf(f, "    cltd\n");         /* 符号扩展 %eax → %edx:%eax */
+            fprintf(f, "    cltd\n"); // 符号扩展 %eax → %edx:%eax
             if (is_const_operand(a2)) {
-                /* idiv 不支持立即数, 需要先 mov 到寄存器 */
+                // idiv 不支持立即数, 需要先 mov 到寄存器
                 fprintf(f, "    movl    $%s, %%ecx\n", a2);
                 fprintf(f, "    idivl   %%ecx\n");
             } else {
@@ -208,13 +208,13 @@ void codegen_generate(Compiler *c, const char *outfile) {
             break;
 
         case OP_JMP:
-            /* (jmp, _, _, label) */
+            // (jmp, _, _, label)
             fprintf(f, "    jmp     %s\n", r);
             break;
 
         case OP_JNZ:
-            /* (jnz, cond, _, label)
-             * 如果 cond 是标签引用 (L*), 直接作为跳转目标 */
+            // (jnz, cond, _, label)
+            // * 如果 cond 是标签引用 (L*), 直接作为跳转目标
             if (is_const_operand(a1)) {
                 fprintf(f, "    cmpl    $0, $%s\n", a1);
             } else {
@@ -224,8 +224,8 @@ void codegen_generate(Compiler *c, const char *outfile) {
             break;
 
         case OP_WRITE:
-            /* (write, id, _, _)
-             * printf("%d\n", id) */
+            // (write, id, _, _)
+            // * printf("%d\n", id)
             fprintf(f, "    movl    %s(%%rip), %%esi\n", a1);
             fprintf(f, "    leaq    .fmt(%%rip), %%rdi\n");
             fprintf(f, "    xorl    %%eax, %%eax\n");
@@ -233,14 +233,14 @@ void codegen_generate(Compiler *c, const char *outfile) {
             break;
 
         case OP_END:
-            /* 程序出口 */
+            // 程序出口
             fprintf(f, "    xorl    %%eax, %%eax\n");
             fprintf(f, "    leave\n");
             fprintf(f, "    ret\n");
             break;
 
         case OP_LABEL:
-            /* (label, Lx, _, _) → 汇编标签 */
+            // (label, Lx, _, _) → 汇编标签
             fprintf(f, "%s:\n", a1);
             break;
 

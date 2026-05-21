@@ -1,13 +1,13 @@
 #include "quadruple.h"
 
-/* 四元式操作码名称 (在 grammar.h 中声明为 extern) */
+// 四元式操作码名称 (在 grammar.h 中声明为 extern)
 const char *op_names[] = {
     "", "program", ":=", "+", "-", "*", "/",
     "jmp", "jnz", "je", "jne", "jl", "jg", "jle", "jge",
     "and", "or", "not", "end", "label", "write"
 };
 
-/* 初始化四元式序列 */
+// 初始化四元式序列
 void quad_init(Compiler *c) {
     c->quad_count = 0;
     c->temp_count = 0;
@@ -15,7 +15,7 @@ void quad_init(Compiler *c) {
     memset(c->quads, 0, sizeof(c->quads));
 }
 
-/* 生成一条四元式, 返回四元式序号 */
+// 生成一条四元式, 返回四元式序号
 int quad_emit(Compiler *c, int op, const char *a1, const char *a2, const char *r) {
     if (c->quad_count >= MAX_QUADS) return -1;
     Quadruple *q = &c->quads[c->quad_count];
@@ -26,7 +26,7 @@ int quad_emit(Compiler *c, int op, const char *a1, const char *a2, const char *r
     return c->quad_count++;
 }
 
-/* 输出四元式序列 */
+// 输出四元式序列
 void quad_dump(Compiler *c, char *buf, int bufsize) {
     int i, pos = 0;
     pos += snprintf(buf + pos, bufsize - pos,
@@ -44,7 +44,7 @@ void quad_dump(Compiler *c, char *buf, int bufsize) {
     }
 }
 
-/* 回填: 将指定四元式的 result 字段替换为目标标号 */
+// 回填: 将指定四元式的 result 字段替换为目标标号
 void quad_backpatch(Compiler *c, int quad_idx, const char *label) {
     if (quad_idx >= 0 && quad_idx < c->quad_count) {
         snprintf(c->quads[quad_idx].result, MAX_STR, "%s", label);
