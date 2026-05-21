@@ -15,13 +15,19 @@ No external dependencies beyond `gcc`, `make`, and `libm`. GTK3 is optional
 
 ```
 compiler/src/
-  grammar.h     — all shared types, enums (Token codes, Quad ops), Compiler context struct
-  scanner.c/h   — lexical analyzer: DFA for identifiers, Pascal constant automaton
-  symbol.c/h    — symbol table & constant table (enter/lookup), temp/label allocation
-  quadruple.c/h — four-address code list (emit, dump, backpatch)
-  parser.c/h    — recursive descent parser + semantic actions (translation grammar)
-  main.c        — CLI entrypoint (conditional GTK3 via #ifdef USE_GTK)
+  grammar.h     — shared types, enums (Token/Quad op codes), Compiler context struct
+  scanner.c/h   — lexical analyzer (keyword lookup, Pascal constant automaton)
+  symbol.c/h    — symbol table & constant table
+  quadruple.c/h — four-address code list (emit/dump/backpatch)
+  parser.c/h    — recursive descent parser (syntax structure only)
+  semantic.c/h  — semantic actions: a1~a6 translation grammar, quad emission, IF/WHILE codegen
+  optimize.c/h  — quadruple-level optimizations
+  codegen.c/h   — x86-64 AT&T code generation
+  main.c        — entry: CLI mode + GTK3 GUI (5 tabs)
 ```
+
+Note: `parser.c` handles syntax recognition only. All semantic actions
+(quad_emit, symbol table updates, temp/label allocation) are in `semantic.c`.
 
 ## Key Conventions
 
