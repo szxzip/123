@@ -12,7 +12,8 @@
 // * ================================
 
 void quad_init(Compiler *c);
-int  quad_emit(Compiler *c, int op, const char *a1, const char *a2, const char *r);
+int quad_emit(Compiler *c, int op, const char *a1, const char *a2,
+              const char *r);
 void quad_dump(Compiler *c, char *buf, int bufsize);
 void quad_backpatch(Compiler *c, int quad_idx, const char *label);
 

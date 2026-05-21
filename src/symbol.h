@@ -13,13 +13,13 @@
 // * ================================
 
 void sym_init(Compiler *c);
-int  sym_enter_id(Compiler *c, const char *name, int type, int kind, int offset);
-int  sym_lookup_id(Compiler *c, const char *name);
+int sym_enter_id(Compiler *c, const char *name, int type, int kind, int offset);
+int sym_lookup_id(Compiler *c, const char *name);
 void sym_set_type(Compiler *c, int index, int type, int len, int offset);
-int  sym_enter_const(Compiler *c, double val);
-int  sym_lookup_const(Compiler *c, double val);
+int sym_enter_const(Compiler *c, double val);
+int sym_lookup_const(Compiler *c, double val);
 char *sym_new_temp(Compiler *c);
-int  sym_new_label(Compiler *c);
+int sym_new_label(Compiler *c);
 void sym_dump(Compiler *c, char *buf, int bufsize);
 void const_dump(Compiler *c, char *buf, int bufsize);
 

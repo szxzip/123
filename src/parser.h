@@ -17,6 +17,6 @@
 // *   - IF/WHILE: generate jump quadruples + backpatching
 
 void parser_init(Compiler *c);
-int  parser_parse(Compiler *c);
+int parser_parse(Compiler *c);
 
 #endif
