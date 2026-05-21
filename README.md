@@ -185,12 +185,12 @@ Windows: compiler-windows.zip（exe + GTK3 DLL，解压即用）
 
 **Linux（GTK3 GUI）：**
 ```bash
-gcc -DUSE_GTK $(pkg-config --cflags gtk+-3.0) src/*.c -o compiler $(pkg-config --libs gtk+-3.0) -lm
+gcc -DUSE_GTK $(pkg-config --cflags gtk+-3.0) src/*.c -o compiler.out $(pkg-config --libs gtk+-3.0) -lm
 ```
 
 **Linux（纯 CLI，无 GUI 依赖）：**
 ```bash
-gcc src/*.c -o compiler -lm
+gcc src/*.c -o compiler.out -lm
 ```
 
 
