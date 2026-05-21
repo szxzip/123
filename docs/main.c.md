@@ -1,5 +1,13 @@
 ## 模块: main.c — 主程序入口 (CLI + GTK3 GUI)
 
+## 简明解释
+
+- CLI mode (`read_file`, `read_stdin`, `main`): No-arg → `run_gtk` GUI. With file arg → `read_file` → `parser_parse` → output token/symbol/const/quad tables → `optimize_run` → `codegen_generate` → print gcc command.
+- GTK3 GUI mode (`#ifdef USE_GTK`): 5-tab notebook (Token/Symbol/Quad/Assembly/Run), file open button, compile button, gcc compile+run button. `on_compile_clicked` runs full pipeline and fills all tabs. `on_gcc_clicked` popen's gcc to assemble+link and runs the executable.
+- Constants: output buffers are 16KB on stack, GTK uses `/tmp/opencode/` for temp files.
+
+---
+
 # main.c 逐行详解
 
 > 编译器前端主程序，包含 GTK3 图形界面和 CLI 命令行两种运行模式。

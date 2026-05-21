@@ -1,5 +1,26 @@
 ## 模块: symbol.c — 符号表与常数表实现
 
+## 简明解释
+
+编译器原理：符号表是连接所有编译阶段的中心数据结构——词法分析发现标识符后存入符号表，语义分析填充类型、偏移等属性，代码生成阶段查询符号表以确定变量分配。
+
+各函数简明解释：
+
+- **`sym_init`** — 清零所有表与计数器：`sym_count`、`const_count`、`temp_count`、`label_count`、`sem_top` 归零；`cur_type` 设为 `TY_INTEGER`；`cur_offset` 归零；`memset` 清空 `sym_table[]`、`const_table[]`、`sem_stack[]`。每次编译新源文件前调用一次，以建立纯净的初始状态。
+- **`sym_enter_id`** — 线性搜索 O(n)，在 `sym_table[]` 中查找同名标识符，命中则返回已有索引，未命中则在尾部插入（先检查 `MAX_SYMBOLS` 上限）。用 `strncpy` 安全复制名称，用 `type_len()` 自动计算类型宽度。方法简单但适用于教学编译器的小规模程序。
+- **`sym_lookup_id`** — 纯搜索函数：遍历 `sym_table[]` 比较名称，命中返回索引，无命中返回 `-1`。不作任何插入，用于语义分析阶段引用变量时查找其定义。
+- **`sym_set_type`** — 翻译文法 a6 动作的核心：将 `sym_table[index]` 的 `type`、`len`、`offset` 覆盖更新为实参值。在变量声明文法 `var ID_SEQ : TYPE ;` 中，标识符在 a2 阶段以默认类型填入，到 a6 阶段才按序分配真实偏移并修正类型——`sym_set_type` 承担该覆盖写入。
+- **`sym_enter_const`** — 常数查填：线性搜索 `const_table[]`，用 `fabs(a - b) < 1e-12` 进行浮点容差比较（双精度机器精度约 `2.22e-16`，`1e-12` 可容忍舍入误差同时作为安全余量）。命中返回索引，未命中则插入尾部。整型常量已统一提升为 `double`。
+- **`sym_lookup_const`** — 常数纯查询：同样的 `1e-12` 容差比较，但不插入条目，未找到返回 `-1`。
+- **`sym_new_temp`** — 递增 `temp_count`，生成名称 `"t1"`、`"t2"`…，调用 `sym_enter_id` 以 `KIND_TEMP` 登记。返回 `char *` 指向函数内 `static` 缓冲区——每次调用会覆盖上次返回值，调用方必须在使用前复制到独立存储（本项目在生成四元式时立即 `strncpy` 到 `Quadruple` 结构体的字段中）。
+- **`sym_new_label`** — 极简实现：仅执行 `++label_count` 并返回。标号以纯数字形式存在四元式的 `result` 字段，不需要名字存储或查填。
+- **`sym_dump`** — 遍历 `sym_table[]`，用 `snprintf` 渐进累积格式化输出：表头（索引/名字/种类/类型/偏移/宽度）、分隔线、每行数据。种类用三元运算符映射为中文（程序/变量/临时），类型通过 `type_names[]` 数组转译。
+- **`const_dump`** — 与 `sym_dump` 同模式：遍历 `const_table[]`，输出表头（索引/值）和每行的 `%g` 格式数值。注意两个 dump 函数各自从 `buf[0]` 写入，连续调用需手动管理偏移量。
+
+---
+
+
+
 # symbol.c 逐行讲解
 
 | 行号 | 代码 | 讲解 |

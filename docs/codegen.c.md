@@ -1,5 +1,19 @@
 ## 模块: codegen.c — 目标代码生成实现 (x86-64 AT&T)
 
+## 简明解释
+
+- `is_const_operand()`: distinguishes constant strings (→ `$immediate`) from variable names (→ `name(%rip)`)
+- `write_cmp_set()`: generates cmp+setX+movzbl pattern — compare two values, produce 0/1 boolean result into a variable. Used for JE/JL/JG etc.
+- `codegen_generate()`: main function producing a complete `.s` file:
+  1. `.section .rodata`: format string `"%d\n"` for printf
+  2. `.section .bss`: zero-initialized variables (all non-program symbols)
+  3. `.section .text`: `main:` function with standard prologue (`pushq rbp; movq rsp rbp`)
+  4. Quad-by-quad translation loop: each OP_* case generates corresponding x86-64 AT&T instructions. Assign=movl, Add/Sub/Mul/Div=arithmetic ops, Comparison=cmp+setX, JMP=jmp, JNZ=cmp+je, WRITE=printf call, END=xorl+leave+ret, LABEL=label:
+  5. `.size` directive at end
+- Compiler principles: code generation is the final phase, translating platform-independent IR into target machine instructions. AT&T syntax uses `$` for immediates, `%` for registers, `(%rip)` for RIP-relative addressing (position-independent code). The calling convention for printf: esi=value (second arg), rdi=format string (first arg), eax=0 (no floating-point args in varargs).
+
+---
+
 # codegen.c 逐行讲解
 
 ## 文件头部

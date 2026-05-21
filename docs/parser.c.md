@@ -1,5 +1,66 @@
 ## 模块: parser.c — 语法分析 (纯语法结构识别)
 
+## 简明解释
+
+这是编译器的**核心模块**。下面是各主要部分的要点概括：
+
+### Pre-read 机制（peek / peek_valid / next_token）
+
+- **LL(1) 单 Token 前瞻**：`peek` 静态变量存储一个预读 Token，`peek_valid` 标志是否有效
+- `next_token()`：若 `peek_valid=1` 则消费 peek（不清除`peek_valid`，下面再读取时重新加载），否则调用 `scanner_next_token()` 从源程序取 Token
+- **设计目的**：递归下降经常需要"看一眼但不消费"当前 Token（如 `STATEMENT()` 根据第一个 Token 分发到不同子程序），peek 提供 LL(1) 所需的 1-Token 前瞻能力
+
+### 表达式解析 — 7 级优先级，互相递归
+
+```
+parse_expression → L1 or → L2 and → L3 not → L4 comparison
+                 → L5 +- → L6 */ → L7 factor
+```
+
+- **优先级通过调用层级实现**：高优先级函数被低优先级函数先调用，因此先被计算
+  - 例如 `parse_or_expr()` 先调用 `parse_and_expr()`，后者先调用 `parse_not_expr()` … 直到 `parse_factor()`
+  - 结果：`*` 在 `+` 之前计算，`+` 在 `and` 之前计算，符合 Pascal 语言语义
+- **左递归消除**：形如 `E → E or T` 的左递归文法改写为 `E → T { or T }`，用 **while 循环** 而非直接递归实现
+  - 每个双目运算符层（or / and / +- / */）都是：先调用下一级得左操作数 → while 当前 Token 是本级运算符 → 消费运算符 → 递归调用下一级得右操作数 → 调 `sem_emit_binop()` 生成四元式 → 将结果覆写 sv（名称变为临时变量）
+- **比较运算符**（L4）只处理单层 `<expr> rel_op <expr>`，非左结合
+- **一元运算符**：`not`（L3，支持多重 not）和一元 `-`（L7 factor 层）各自特殊处理
+- 每个表达式层调用对应的语义函数（`sem_emit_binop` / `sem_emit_comparison` / `sem_emit_unary_not` / `sem_emit_unary_minus`）生成四元式
+
+### 语句解析 — 10 个递归下降子程序
+
+每个非终结符对应一个函数，结构化如下：
+
+| 子程序 | 对应文法规则 | 职责 |
+|--------|-------------|------|
+| `PROGRAM` | `program id SUB_PROGRAM .` | 入口：匹配 `program` / 程序名 / `SUB_PROGRAM` / `.`，调 `sem_mark_program` 和 `sem_emit_end` |
+| `SUB_PROGRAM` | `VARIABLE COM_SENTENCE` | 纯组合函数，无自身语义动作 |
+| `VARIABLE` | `var ID_SEQ : TYPE ;` 或 ε | 触发语义栈 a1→a6：a1 初始化偏移 → a2 压栈 → a3/a4/a5 设置类型 → a6 FIFO 弹栈填写符号表 |
+| `ID_SEQUENCE` | `id { , id }` | 每遇 id 调 sem_a2 压栈 |
+| `TYPE` | `integer \| real \| char` | 根据关键字触 a3/a4/a5 设置 cur_type |
+| `COM_SENTENCE` | `begin STATEMENT { ; STATEMENT } end` | 复合语句，while 循环处理分号分隔 |
+| `STATEMENT` | 分发枢纽 | 根据当前 Token：ID→EVA，IF→IF_STMT，WHILE→WHILE_STMT，WRITE→输出，BEGIN→嵌套块 |
+| `EVA_SENTENCE` | `id := EXPRESSION` | 赋值：解析左值 id，解析右值表达式，调 `sem_emit_assign` |
+| `IF_STATEMENT` | `if E then S [else S]` | 生成 3 个标号，典型模式：jnz→L_then / jmp→L_false / label L_then / then体 / [jmp→L_end / label L_false / else体] / label L_end |
+| `WHILE_STATEMENT` | `while E do S` | 生成 3 个标号，典型模式：label L_loop / jnz→L_body / jmp→L_exit / label L_body / 循环体 / jmp→L_loop / label L_exit |
+
+### parser_parse — 两遍扫描架构
+
+1. **第一遍**：`scanner_scan_all()` 全量扫描，生成 `token_list[]` + 填充符号表/常量表
+2. **保存状态**：`saved_tok_count = c->token_count`
+3. **重置**：`scanner_init()` 重置扫描位置为 0，恢复 `token_count`（防止数据丢失），清零 peek
+4. **清零中间状态**：`temp_count` / `label_count` / `quad_count` / `sem_top` 归零，但**符号表和常数表保留**
+5. **第二遍**：`next_token()` → `PROGRAM()` 递归下降 → 语法结构识别 → 错误检查 → EOF 检查
+6. 返回 1（成功）或 0（失败）
+
+### 编译器原理
+
+- **递归下降分析**（Recursive Descent）是**自顶向下**（top-down）的语法分析方法：每个非终结符对应一个解析函数，从起始符号开始逐步展开
+- **左递归必须消除**：原文法中的左递归（如 `E → E + T`）会导致无限递归，改写为 `E → T { + T }` 后用 while 循环实现
+- **运算符优先级通过调用层级实现**：优先级越高的运算符，其解析函数在调用链的越深处，因此先被计算
+- **翻译文法**（Syntax-Directed Translation）：将语义动作直接嵌入文法规则中——每个产生式右侧的语义动作在对应位置执行，这就是本编译器 a1~a6 和各类 sem_ 函数的理论基础
+
+---
+
 # parser.c 逐行讲解
 
 > parser.c — 语法分析器（解析器）的实现文件。采用递归下降子程序法，负责语法结构识别与错误检查。

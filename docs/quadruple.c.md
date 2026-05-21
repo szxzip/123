@@ -1,5 +1,21 @@
 ## 模块: quadruple.c — 四元式中间代码实现
 
+## 简明解释
+
+- `op_names[]` — 将 `OP_*` 枚举值（1-20）映射为人类可读字符串，如 `":="`, `"+"`, `"jmp"` 等
+- `quad_init` — 重置 `quad_count` / `temp_count` / `label_count`，用 `memset` 清零整个 `quads[]` 数组
+- `quad_emit` — 将 `(op, a1, a2, r)` 追加到 `quads[]`，空/NULL 参数替换为下划线 `"_"` 占位，通过后置递增 `quad_count++` 返回下标索引
+- `quad_dump` — 格式化为 5 列表格输出（序号 | 操作 | arg1 | arg2 | result）
+- `quad_backpatch` — 覆盖指定四元式下标 `quad_idx` 的 `result` 字段，用于解析完成后回填前向跳转的目标标号
+
+### 编译原理要点
+
+- **中间代码（IR）** 介于语法分析与目标代码生成之间，是编译器前端与后端的桥梁
+- **四元式格式 `(op, arg1, arg2, result)`** 本质是三地址码（Three-Address Code）的一种变体——每条指令最多有三个操作数（两个源操作数 + 一个结果）
+- **为什么字段用字符串而非整数？** 字符串是自包含（self-contained）的——目标代码生成器可以直接使用这些字符串，无需再查符号表获取名称或类型信息
+
+---
+
 # quadruple.c 逐行讲解
 
 ## 第 1 行 — 头文件引入

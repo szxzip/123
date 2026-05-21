@@ -1,5 +1,13 @@
 ## 模块: parser.h — 语法分析器接口
 
+## 简明解释
+
+- **parser_init**: 重置预读（peek）机制，`peek_valid = 0`
+- **parser_parse**: 编译主入口，采用**两遍扫描**架构：第一遍 `scanner_scan_all` 全量词法分析 → 保存 token_count → 第二遍重置扫描器后递归下降语法分析 → 生成四元式
+- 注意：所有语义动作（四元式生成、符号表填写、临时变量分配）已移入 `semantic.c/h`，parser 只负责语法结构识别
+
+---
+
 # parser.h — 语法分析器接口
 
 | 行号 | 代码 | 讲解 |

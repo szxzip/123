@@ -1,5 +1,21 @@
 ## 模块: grammar.h — 全局定义 (Token/四元式/符号表/结构体)
 
+## 简明解释
+
+- **`#define` 常量** — `MAX_SYMBOLS=256`、`MAX_QUADS=1024` 等均为固定大小的静态数组容量。选取 2 的幂（256=2^8, 1024=2^10）便于索引和对齐，对教学级 Pascal 子集编译器足够。所有数组（符号表、常数表、四元式列表、Token 序列）以此方式预分配，避免了动态扩容的复杂度。
+- **Token 类型码枚举** — `TOK_EOF=0` 文件结束哨兵；`TOK_ID=1` 标识符；`TOK_CONST=2` 常数；关键字码 = `keys_table` 索引 + 3（`TOK_PROGRAM=3` 对应表第 0 项），这样词法分析器匹配关键字后可直接用 `i+3` 得到 Token 码；界符/比较运算符从 10/29 起独立编号，不经过关键字表映射。
+- **四元式操作码枚举** — 从 1 起编号（0 预留为空操作）。`OP_ADD/SUB/MUL/DIV`(3~6) 为算术运算；`OP_JMP/JNZ/JE~JGE`(7~14) 为控制流跳转；`OP_AND_OP/OR_OP/NOT_OP`(15~17) 为逻辑运算；`OP_PROGRAM`(1)、`OP_END`(18)、`OP_LABEL`(19)、`OP_WRITE`(20) 为伪操作。加 `_OP` 后缀是为了避免与系统宏（如 `<iso646.h>` 中的 `and`/`or`）冲突。
+- **符号种类/类型枚举** — `KIND_PROGRAM=0` 程序名（符号表首项）、`KIND_VARIABLE=1` 用户变量、`KIND_TEMP=2` 编译器生成的临时变量 `_tN`。`TY_INTEGER=0`(4 字节)、`TY_REAL=1`(8 字节)、`TY_CHAR=2`(1 字节)，连续整数便于 `switch` 分发和 `type_len()` 查表。
+- **Token 结构体** — `code` 存储类型码（`TOK_*`）；`value` 存储符号表/常数表索引（ID 或 CONST 时有效）；`real_val`/`int_val` 冗余存储常数值，供表达式求值时直接读取，避免二次查表。
+- **Symbol 结构体** — 符号表条目。`name[32]` 标识符文本，供 `lookup()` 用 `strcmp` 检索；`type` 数据类型（`TY_*`）；`kind` 符号种类（`KIND_*`）；`offset` 运行时活动记录中的偏移量，语义动作 a6 按声明顺序分配；`len` 类型宽度（冗余存储，避免每次调用 `type_len()`）。
+- **Quadruple 结构体** — 四元式 `(op, arg1, arg2, result)`。三个参数字段为 `char[]` 字符串而非整数索引，因为参数可能是标识符名、临时变量名 `_tN`、标号名 `label_N` 或占位符 `"_"`，字符串形式便于直接输出和回填（backpatch）。
+- **SemValue 结构体** — 表达式解析中的临时结果传递单元。`name` 存储结果变量名（用户变量名或临时变量名 `_tN`），`is_temp` 标记该名称是否为临时变量（1=临时，0=普通），上层解析器据此决定下一步语义动作。
+- **Compiler 结构体** — 全局编译器上下文，所有模块通过 `Compiler *c` 指针共享状态。包含：词法分析器状态（`source` 源串、`pos` 位置、`ch` 当前字符、`token_list[]` Token 序列）；符号表/常数表（`sym_table[]`、`const_table[]`、计数器）；语义栈（`sem_stack[]`、`cur_type`、`cur_offset`，供变量声明的 a2/a6 动作使用）；四元式列表（`quads[]`、`quad_count`、`temp_count`、`label_count`）；错误信息（`error_flag`、`error_msg[256]`）。
+- **extern 声明** — `keys_table[]`（关键字字符串数组，定义在 `scanner.c`）、`op_names[]`（四元式操作码名称数组，定义在 `quadruple.c`）、`const_aut[8][5]`（常数 DFA 状态转移矩阵，定义在 `scanner.c`）。`extern` 表示存储空间在另一编译单元分配，链接时解析到同一地址。
+- **`type_len()` inline** — `static inline` 函数，用嵌套三元运算符将类型码映射为字节宽度：`TY_INTEGER→4`、`TY_REAL→8`、`TY_CHAR→1`。`static` 使每个包含此头文件的 `.c` 文件有独立副本（或编译器优化消除）；`inline` 提示编译器在调用处展开，因为此函数在偏移计算中被频繁调用，展开可避免函数调用开销。
+
+---
+
 # grammar.h 逐行详解
 
 本文档对 `compiler/src/grammar.h` 进行逐行（或逻辑分组）的详细解释，涵盖每条 `#define`、`enum`、`typedef struct`、`extern` 声明及 `inline` 函数的作用与设计意图。

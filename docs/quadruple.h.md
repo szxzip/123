@@ -1,5 +1,14 @@
 ## 模块: quadruple.h — 四元式中间代码接口
 
+## 简明解释
+
+- `quad_init` (reset) — 重置四元式计数器、临时变量计数器、标号计数器，清零整个四元式数组
+- `quad_emit` (append one quad, returns index) — 追加一条四元式 `(op, arg1, arg2, result)`，返回新生成四元式的序号（下标索引）
+- `quad_dump` (format output) — 格式化输出当前所有四元式为表格形式
+- `quad_backpatch` (replace result field of existing quad) — 将已生成四元式的 `result` 字段替换为新标号，实现回填技术
+
+---
+
 # quadruple.h 逐行讲解
 
 | 行号 | 代码 | 讲解 |

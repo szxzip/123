@@ -1,5 +1,11 @@
 ## 模块: optimize.h — 优化器接口
 
+## 简明解释
+
+- Single public function `optimize_run()`. The comment lists the 3 optimizations: constant folding, constant propagation, dead code elimination.
+
+---
+
 # optimize.h 逐行讲解
 
 | 行号 | 代码 | 讲解 |

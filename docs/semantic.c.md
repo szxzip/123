@@ -1,5 +1,25 @@
 ## 模块: semantic.c — 语义动作实现 (a1~a6 + 四元式生成)
 
+## 简明解释
+
+**各函数组的实现要点：**
+
+- **a1–a6（声明语义）**：翻译文法中处理变量声明的语义动作
+  - `a1` 将 `cur_offset` 归零，初始化新一轮偏移分配
+  - `a2` 将当前 Token 的 value（符号表索引）压入 `sem_stack`
+  - `a3`/`a4`/`a5` 分别设置 `cur_type = TY_INTEGER` / `TY_REAL` / `TY_CHAR`
+  - `a6` 从栈底到栈顶 (FIFO) 遍历，对每个索引调用 `sym_set_type(c, idx, type, len, cur_offset)`，然后 `cur_offset += len`；完成后清栈 `sem_top = 0`
+- **表达式语义**：`sem_emit_binop` 分配临时变量 temp，生成 `(op, left, right, temp)` 四元式，并通过 `strncpy` 将 temp 名称**覆写回 left->name**（因为调用者持有 left 指针，upper-level 解析循环需要将当前结果作为下一轮左操作数）。一元 not 生成单操作数四元式 `(not, sv, _, t)`；一元负号翻译为 `0 - x` 即 `(-, "0", sv, t)`。比较运算通过 switch 将 6 种 TOK_\* 关系运算符映射为对应的 OP_J\* 四元式操作码（注意：OP_JE 等在 codegen 阶段翻译为 cmp + set\* 指令，生成 0/1 布尔值，**不是**直接跳转指令）
+- **赋值与输出**：`sem_emit_assign` 直接 `quad_emit(OP_ASSIGN, src, "_", dst)`；`sem_emit_write` 调用 `quad_emit(OP_WRITE, id, "_", "_")`，在 codegen 阶段翻译为 `movl id, %esi; call printf`
+- **程序结构**：`sem_mark_program` 将符号表条目标记为 `KIND_PROGRAM`，生成 `(program, name, _, _)` 入口标记。`sem_emit_end` 生成 `(end, _, _, _)`，codegen 翻译为 `xorl %eax,%eax; leave; ret`
+- **IF 语义**：`sem_if_begin` 分配 3 个 `sym_new_label` 标号 (L_true, L_false, L_end)，通过指针返回给 parser，并生成初始的 `jnz cond L_true` + `jmp L_false`。then 分支体前后分别由 `sem_if_then_label` 发射入口、`sem_if_then_end` 在有 else 时补 `jmp L_end`。false 分支由 `sem_if_false_label` 发射入口。无论有无 else，最终出口由 `sem_if_end_label` 发射。标号管理完全在 semantic 层，parser 无需知道具体编号
+- **WHILE 语义**：`sem_while_begin` 分配 loop/body/exit 三个标号。`sem_while_loop_label` 在循环顶部发射 loop label。`sem_while_check` 在条件表达式解析后发射 `jnz cond L_body` + `jmp L_exit`。`sem_while_body_label` 发射循环体入口 label。`sem_while_end` 在循环体末尾发射 `jmp L_loop`（无条件回跳）和 `L_exit` 出口 label
+- **SemValue 工具**：`sem_init_sv` 将 name 设为空串、is_temp 设为 0。`sem_value_from_id` 从 `sym_table[idx].name` 拷贝标识符名到 sv，无效索引用 `"id%d"` 兜底。`sem_value_from_const` 将常数表的 double 值用 `snprintf("%g")` 转换为字符串（如 3.14 → "3.14"），无效索引用兜底字符串
+
+> 编译器原理：语义分析是语法制导的——解析过程中每个产生式触发对应的语义动作。翻译文法 (translation grammar) 将语义动作嵌入文法规则中，使解析器在规约时同步执行语义动作，生成中间代码。三地址码（四元式）将复杂表达式拆解为 `t1 = a op b` 形式的简单步骤，每条四元式最多涉及三个地址（两个源操作数 + 一个目标）。临时变量的分配与覆写策略使得表达式树被线性化为四元式序列。
+
+---
+
 # semantic.c 逐行讲解
 
 > semantic.c — 语义分析器的实现文件。包含翻译文法 a1~a6、表达式四元式生成、
