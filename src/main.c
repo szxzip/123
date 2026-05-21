@@ -192,7 +192,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   (void)user_data;
   GtkWidget *window = gtk_application_window_new(app);
   parent_window = window;
-  gtk_window_set_title(GTK_WINDOW(window), "Compiler");
+  gtk_window_set_title(GTK_WINDOW(window), "编译器 Compiler");
   gtk_window_set_default_size(GTK_WINDOW(window), 1000, 700);
 
   // 主布局: 垂直
