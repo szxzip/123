@@ -177,6 +177,8 @@ Token 序列 + 符号表/常数表
     │  └─ 逐条翻译为 x86-64 AT&T 汇编
     ▼
 .s 汇编文件 ──→ gcc 汇编链接 ──→ 可执行文件
+
+Windows: compiler-windows.zip（exe + GTK3 DLL，解压即用）
 ```
 
 ## 十、编译命令
@@ -186,20 +188,27 @@ Token 序列 + 符号表/常数表
 gcc -DUSE_GTK $(pkg-config --cflags gtk+-3.0) src/*.c -o compiler $(pkg-config --libs gtk+-3.0) -lm
 ```
 
-**Linux / Windows（纯 CLI）：**
+**Linux（纯 CLI，无 GUI 依赖）：**
 ```bash
-gcc src/*.c -o compiler -lm                                # Linux
-x86_64-w64-mingw32-gcc src/*.c -o compiler.exe -lm          # Windows 交叉编译
+gcc src/*.c -o compiler -lm
+```
+
+**Windows（交叉编译 GTK3 GUI）：**
+```bash
+x86_64-w64-mingw32-gcc -DUSE_GTK $(x86_64-w64-mingw32-pkg-config --cflags gtk+-3.0) \
+  src/*.c -o compiler.exe $(x86_64-w64-mingw32-pkg-config --libs gtk+-3.0) -lm
 ```
 
 ## 十一、运行
 
 ```bash
-./compiler                        # GTK3 图形界面（仅 Linux GTK 版）
+./compiler                        # GTK3 图形界面
 ./compiler test/sample1.txt       # CLI 编译，生成 .s 文件
 
 gcc -no-pie test/sample1.txt.s -o s1 && ./s1    # 汇编链接执行
 ```
+
+**Windows 分发：** 下载 `compiler-windows.zip`，解压即可运行 `compiler.exe`（已打包全部 GTK3 DLL，无需安装）。
 
 ## 十二、源文件结构
 
@@ -213,4 +222,5 @@ gcc -no-pie test/sample1.txt.s -o s1 && ./s1    # 汇编链接执行
 | `quadruple.c/h` | 中间代码 | 四元式 emit/dump/backpatch |
 | `optimize.c/h` | 优化 | 折叠/传播/死代码消除 |
 | `codegen.c/h` | 目标代码 | x86-64 AT&T 汇编生成 |
-| `main.c` | 入口 | CLI + GTK3 GUI |
+| `main.c` | 入口 | CLI + GTK3 GUI（`#ifdef USE_GTK` 条件编译） |
+| `compiler-windows.zip` | 分发 | Windows GTK3 GUI 打包（exe + 全部 DLL，解压即用） |
