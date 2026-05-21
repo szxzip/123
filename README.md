@@ -193,11 +193,6 @@ gcc -DUSE_GTK $(pkg-config --cflags gtk+-3.0) src/*.c -o compiler $(pkg-config -
 gcc src/*.c -o compiler -lm
 ```
 
-**Windows（交叉编译 GTK3 GUI）：**
-```bash
-x86_64-w64-mingw32-gcc -DUSE_GTK $(x86_64-w64-mingw32-pkg-config --cflags gtk+-3.0) \
-  src/*.c -o compiler.exe $(x86_64-w64-mingw32-pkg-config --libs gtk+-3.0) -lm
-```
 
 ## 十一、运行
 
