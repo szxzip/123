@@ -2,3 +2,4 @@ build/
 test/*.s
 test/*.out
 *.o
+release/
