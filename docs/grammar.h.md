@@ -1,3 +1,5 @@
+## 模块: grammar.h — 全局定义 (Token/四元式/符号表/结构体)
+
 # grammar.h 逐行详解
 
 本文档对 `compiler/src/grammar.h` 进行逐行（或逻辑分组）的详细解释，涵盖每条 `#define`、`enum`、`typedef struct`、`extern` 声明及 `inline` 函数的作用与设计意图。
