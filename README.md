@@ -177,8 +177,6 @@ Token 序列 + 符号表/常数表
     │  └─ 逐条翻译为 x86-64 AT&T 汇编
     ▼
 .s 汇编文件 ──→ gcc 汇编链接 ──→ 可执行文件
-
-Windows: compiler-windows.zip（exe + GTK3 DLL，解压即用）
 ```
 
 ## 十、编译命令
@@ -217,3 +215,7 @@ gcc -no-pie test/sample1.txt.s -o s1 && ./s1    # 汇编链接执行
 | `optimize.c/h` | 优化 | 折叠/传播/死代码消除 |
 | `codegen.c/h` | 目标代码 | x86-64 AT&T 汇编生成 |
 | `main.c` | 入口 | CLI + GTK3 GUI（`#ifdef USE_GTK` 条件编译） |
+
+<br>
+
+![图](img/1.png)
