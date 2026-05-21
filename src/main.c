@@ -26,15 +26,40 @@
 #include "optimize.h"
 #include "codegen.h"
 
-#ifdef USE_GTK
 #include <gtk/gtk.h>
+
+static char *read_file(const char *filename);
 
 /* ================================================================
  * GTK3 图形界面
  * ================================================================ */
 
 static Compiler g_compiler;
-static GtkWidget *src_view, *token_view, *sym_view, *quad_view;
+static GtkWidget *src_view, *token_view, *sym_view, *quad_view, *asm_view, *run_view;
+static GtkWidget *parent_window;
+static int g_compiled_ok;
+
+static void on_open_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    (void)data;
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(
+        "打开源文件", GTK_WINDOW(parent_window),
+        GTK_FILE_CHOOSER_ACTION_OPEN,
+        "取消", GTK_RESPONSE_CANCEL,
+        "打开", GTK_RESPONSE_ACCEPT,
+        NULL);
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char *fname = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        char *src = read_file(fname);
+        if (src) {
+            GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(src_view));
+            gtk_text_buffer_set_text(buf, src, -1);
+            free(src);
+        }
+        g_free(fname);
+    }
+    gtk_widget_destroy(dialog);
+}
 
 static void on_compile_clicked(GtkWidget *widget, gpointer data) {
     (void)widget;
@@ -80,13 +105,76 @@ static void on_compile_clicked(GtkWidget *widget, gpointer data) {
         quad_dump(&g_compiler, qbuf, sizeof(qbuf));
         buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(quad_view));
         gtk_text_buffer_set_text(buf, qbuf, -1);
+
+        /* 优化 + 生成汇编 */
+        optimize_run(&g_compiler);
+        codegen_generate(&g_compiler, "/tmp/opencode/compiler_output.s");
+
+        /* 显示汇编代码 */
+        FILE *af = fopen("/tmp/opencode/compiler_output.s", "r");
+        if (af) {
+            char abuf[16384];
+            size_t alen = fread(abuf, 1, sizeof(abuf) - 1, af);
+            abuf[alen] = '\0';
+            fclose(af);
+            buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(asm_view));
+            gtk_text_buffer_set_text(buf, abuf, -1);
+        }
+
+        g_compiled_ok = 1;
     } else {
         snprintf(out_buf, sizeof(out_buf), "编译错误:\n%s", g_compiler.error_msg);
         buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(token_view));
         gtk_text_buffer_set_text(buf, out_buf, -1);
+        g_compiled_ok = 0;
     }
 
     g_free(src_text);
+}
+
+static void on_gcc_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    (void)data;
+    if (!g_compiled_ok) {
+        GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(run_view));
+        gtk_text_buffer_set_text(buf, "请先点\"编译\"编译成功后再运行 GCC\n", -1);
+        return;
+    }
+
+    char result[32768];
+    int pos = 0;
+
+    /* 运行 gcc 编译 */
+    pos += snprintf(result + pos, sizeof(result) - pos,
+        "===== GCC 编译 =====\n");
+    FILE *gcc = popen(
+        "gcc -no-pie /tmp/opencode/compiler_output.s -o /tmp/opencode/compiler_output 2>&1",
+        "r");
+    if (gcc) {
+        char line[512];
+        while (fgets(line, sizeof(line), gcc))
+            pos += snprintf(result + pos, sizeof(result) - pos, "%s", line);
+        int status = pclose(gcc);
+        if (status == 0) {
+            pos += snprintf(result + pos, sizeof(result) - pos,
+                "GCC 编译成功\n\n");
+            /* 运行可执行文件 */
+            pos += snprintf(result + pos, sizeof(result) - pos,
+                "===== 程序运行输出 =====\n");
+            FILE *run = popen("/tmp/opencode/compiler_output 2>&1", "r");
+            if (run) {
+                while (fgets(line, sizeof(line), run))
+                    pos += snprintf(result + pos, sizeof(result) - pos, "%s", line);
+                pclose(run);
+            }
+        } else {
+            pos += snprintf(result + pos, sizeof(result) - pos,
+                "\nGCC 编译失败 (退出码 %d)\n", status);
+        }
+    }
+
+    GtkTextBuffer *buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(run_view));
+    gtk_text_buffer_set_text(buf, result, -1);
 }
 
 static GtkWidget *create_output_area(const char *title, GtkWidget *notebook) {
@@ -105,6 +193,7 @@ static GtkWidget *create_output_area(const char *title, GtkWidget *notebook) {
 static void activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
     GtkWidget *window = gtk_application_window_new(app);
+    parent_window = window;
     gtk_window_set_title(GTK_WINDOW(window), "编译器前端 - Compiler Frontend");
     gtk_window_set_default_size(GTK_WINDOW(window), 1000, 700);
 
@@ -124,16 +213,26 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(src_scrolled), src_view);
     gtk_box_pack_start(GTK_BOX(vbox), src_scrolled, FALSE, FALSE, 0);
 
-    /* 编译按钮 */
-    GtkWidget *btn = gtk_button_new_with_label("编译 (Compile)");
-    g_signal_connect(btn, "clicked", G_CALLBACK(on_compile_clicked), NULL);
-    gtk_box_pack_start(GTK_BOX(vbox), btn, FALSE, FALSE, 5);
+    /* 按钮行 */
+    GtkWidget *hbox_btn = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *btn_open = gtk_button_new_with_label("读取文件");
+    g_signal_connect(btn_open, "clicked", G_CALLBACK(on_open_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(hbox_btn), btn_open, FALSE, FALSE, 0);
+    GtkWidget *btn_compile = gtk_button_new_with_label("编译 (Compile)");
+    g_signal_connect(btn_compile, "clicked", G_CALLBACK(on_compile_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(hbox_btn), btn_compile, FALSE, FALSE, 0);
+    GtkWidget *btn_gcc = gtk_button_new_with_label("GCC 编译运行");
+    g_signal_connect(btn_gcc, "clicked", G_CALLBACK(on_gcc_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(hbox_btn), btn_gcc, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_btn, FALSE, FALSE, 5);
 
     /* 下半部分: 输出 (Notebook) */
     GtkWidget *notebook = gtk_notebook_new();
     token_view = create_output_area("Token 序列", notebook);
     sym_view   = create_output_area("符号表/常数表", notebook);
     quad_view  = create_output_area("四元式(中间代码)", notebook);
+    asm_view   = create_output_area("汇编代码", notebook);
+    run_view   = create_output_area("运行输出", notebook);
     gtk_box_pack_start(GTK_BOX(vbox), notebook, TRUE, TRUE, 0);
 
     gtk_widget_show_all(window);
@@ -146,7 +245,6 @@ void run_gtk(int argc, char **argv) {
     g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);
 }
-#endif /* USE_GTK */
 
 /* ================================================================
  * CLI 模式
@@ -185,12 +283,10 @@ static char *read_stdin() {
 }
 
 int main(int argc, char **argv) {
-#ifdef USE_GTK
     if (argc < 2) {
         run_gtk(argc, argv);
         return 0;
     }
-#endif
 
     Compiler c;
     memset(&c, 0, sizeof(c));
