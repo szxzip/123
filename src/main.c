@@ -24,9 +24,13 @@
 #include "optimize.h"
 #include "codegen.h"
 
+#ifdef USE_GTK
 #include <gtk/gtk.h>
+#endif
 
 static char *read_file(const char *filename);
+
+#ifdef USE_GTK
 
 // ================================================================
 // * GTK3 图形界面
@@ -244,6 +248,8 @@ void run_gtk(int argc, char **argv) {
     g_object_unref(app);
 }
 
+#endif // USE_GTK
+
 // ================================================================
 // * CLI 模式
 // * ================================================================
@@ -281,10 +287,12 @@ static char *read_stdin() {
 }
 
 int main(int argc, char **argv) {
+#ifdef USE_GTK
     if (argc < 2) {
         run_gtk(argc, argv);
         return 0;
     }
+#endif
 
     Compiler c;
     memset(&c, 0, sizeof(c));
