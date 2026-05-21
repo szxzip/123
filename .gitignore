@@ -1,5 +1,4 @@
-build/
-test/*.s
-test/*.out
+*.s
+*.out
+*.exe
 *.o
-release/
