@@ -33,8 +33,8 @@
 | 行号 | 代码 | 讲解 |
 |------|------|------|
 | 1 | `#include "semantic.h"` | 引入自身头文件，获得所有 `sem_*` 函数的前向声明及 `grammar.h` 传递引入 |
-| 2 | `#include "symbol.h"` | 引入符号表模块。需要 `sym_set_type()`（a6 填符号表）、`sym_new_temp()`（分配临时变量）、`sym_new_label()`（分配标号） |
-| 3 | `#include "quadruple.h"` | 引入四元式模块。所有语义动作最终都会调用 `quad_emit()` 生成四元式 |
+| 3 | `#include "symbol.h"` | 引入符号表模块。需要 `sym_set_type()`（a6 填符号表）、`sym_new_temp()`（分配临时变量）、`sym_new_label()`（分配标号） |
+| 2 | `#include "quadruple.h"` | 引入四元式模块。所有语义动作最终都会调用 `quad_emit()` 生成四元式 |
 
 ---
 

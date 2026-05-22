@@ -28,7 +28,7 @@
 | 13 | （空行） | 分隔符空白行。 |
 | 14 | `void quad_init(Compiler *c);` | 声明 `quad_init` 函数。接收编译器上下文指针 `c`，无返回值。用于初始化四元式相关的计数器，将 `quad_count`、`temp_count`、`label_count` 归零，并清零整个四元式数组。 |
 | 15 | `int quad_emit(Compiler *c, int op, const char *a1, const char *a2, const char *r);` | 声明 `quad_emit` 函数。接收编译器上下文 `c`、操作码 `op`、两个操作数 `a1` `a2`、结果 `r`。返回生成的四元式的序号（下标，从 0 开始）。如果四元式已满则返回 -1。这是中间代码生成的核心接口。 |
-| 16 | `void quad_dump(Compiler *c, char *buf, int bufsize);` | 声明 `quad_dump` 函数。将当前所有四元式格式化输出到 `buf` 缓冲区中（最多 `bufsize` 字节）。无返回值。用于调试和输出中间代码。 |
-| 17 | `void quad_backpatch(Compiler *c, int quad_idx, const char *label);` | 声明 `quad_backpatch` 函数。将第 `quad_idx` 条四元式的 `result` 字段替换为指定的标号 `label`。用于"回填"（backpatching）技术：生成跳转指令时目标尚未知，先生成占位四元式，待目标确定后再回填。 |
+| 17 | `void quad_dump(Compiler *c, char *buf, int bufsize);` | 声明 `quad_dump` 函数。将当前所有四元式格式化输出到 `buf` 缓冲区中（最多 `bufsize` 字节）。无返回值。用于调试和输出中间代码。 |
+| 18 | `void quad_backpatch(Compiler *c, int quad_idx, const char *label);` | 声明 `quad_backpatch` 函数。将第 `quad_idx` 条四元式的 `result` 字段替换为指定的标号 `label`。用于"回填"（backpatching）技术：生成跳转指令时目标尚未知，先生成占位四元式，待目标确定后再回填。 |
 | 18 | （空行） | 分隔符空白行。 |
-| 19 | `#endif` | 头文件保护宏的结尾。与第 1 行 `#ifndef` 配对，结束条件编译块。 |
+| 20 | `#endif` | 头文件保护宏的结尾。与第 1 行 `#ifndef` 配对，结束条件编译块。 |

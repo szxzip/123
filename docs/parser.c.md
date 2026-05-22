@@ -181,9 +181,9 @@ parse_expression → L1 or → L2 and → L3 not → L4 comparison
 | 行号 | 代码 | 讲解 |
 |------|------|------|
 | 148–149 | `if TOK_PROGRAM` | 文法要求源程序以 `program` 开头。不匹配 → 报错 "期望 'program'" |
-| 150 | `next_token(c)` | 消费 `program` 关键字 |
+| 21 | `next_token(c)` | 消费 `program` 关键字 |
 | 151–152 | `if TOK_ID` | program 后必须跟标识符（程序名）。保存其 idx（符号表索引） |
-| 153 | `next_token(c)` | 消费程序名标识符 |
+| 38 | `next_token(c)` | 消费程序名标识符 |
 | 154 | `sem_mark_program(c, idx)` | 语义动作：将程序名在符号表中标记为 KIND_PROGRAM，并生成 `(program, name, _, _)` 四元式 |
 | 155 | `SUB_PROGRAM(c)` | 递归下降进入子程序部分 |
 | 156–158 | `if TOK_DOT` | 程序以 `.` 结束 → next_token 消费 → `sem_emit_end(c)` 生成 `(end, _, _, _)` 四元式 |
@@ -206,11 +206,11 @@ parse_expression → L1 or → L2 and → L3 not → L4 comparison
 | 行号 | 代码 | 讲解 |
 |------|------|------|
 | 183–184 | `if TOK_VAR` | 文法 `VARIABLE → var ID_SEQ : TYPE ; | ε`。当前 Token 是 var 则进入声明分支，否则为空产生式 → 什么也不做 |
-| 185 | `next_token(c)` | 消费 `var` 关键字 |
-| 186 | `sem_a1(c)` | 语义动作 a1：`cur_offset = 0`，初始化变量偏移计数器 |
-| 187 | `ID_SEQUENCE(c)` | 解析标识符序列 `id { , id }`，每遇 id 触发 a2 压栈 |
+| 157 | `next_token(c)` | 消费 `var` 关键字 |
+| 185 | `sem_a1(c)` | 语义动作 a1：`cur_offset = 0`，初始化变量偏移计数器 |
+| 186 | `ID_SEQUENCE(c)` | 解析标识符序列 `id { , id }`，每遇 id 触发 a2 压栈 |
 | 188–189 | `if TOK_COLON` | 标识符列表后必须是 `:` |
-| 190 | `TYPE(c)` | 解析类型名（integer/real/char），触发 a3/a4/a5 设置 cur_type |
+| 189 | `TYPE(c)` | 解析类型名（integer/real/char），触发 a3/a4/a5 设置 cur_type |
 | 191–193 | `if TOK_SEMICOLON` | `;` 触发 a6——FIFO 弹栈，对每个标识符填写类型/宽度/偏移到符号表 → next_token |
 | 194–197 | else | 缺少 `;` → 语法错误 |
 | 200–202 | else | 缺少 `:` → 语法错误 |
@@ -277,7 +277,7 @@ a1(offset=0) → a2(push a) → a2(push b) → a3(type=integer, len=4)
 | 302–307 | `if TOK_ID` | 赋值语句 `id := EXPRESSION` 必须以标识符开头。保存 idx 和 id_name → next_token 消费 id |
 | 308–309 | `if TOK_ASSIGN` | 赋值符号 `:=` 必须紧随 id → next_token 消费 |
 | 310–311 | `parse_expression(c, &sv)` | 递归下降分析右端表达式，结果存入 SemValue sv |
-| 312 | `sem_emit_assign(c, sv.name, id_name)` | 语义动作：生成 `(:=, expr_val, _, id)` 四元式 |
+| 317 | `sem_emit_assign(c, sv.name, id_name)` | 语义动作：生成 `(:=, expr_val, _, id)` 四元式 |
 | 313–316 | else | 标识符后面不是 `:=` → 语法错误 |
 | 318–321 | else | 赋值语句不是以标识符开头 → 语法错误 |
 
@@ -303,12 +303,12 @@ if EXPRESSION then STATEMENT [ else STATEMENT ]
 
 | 行号 | 代码 | 讲解 |
 |------|------|------|
-| 327 | `next_token(c)` | 消费 `if` 关键字 |
+| 332 | `next_token(c)` | 消费 `if` 关键字 |
 | 329–330 | `parse_expression(c, &cond)` | 解析条件表达式，结果存在 SemValue cond（一个临时变量，值为 0 或 1） |
 | 332–333 | `sem_if_begin(c, &cond, &label_true, &label_false, &label_end)` | 语义动作：分配 3 个标号，并生成第一条跳转四元式 `(jnz, cond, _, L_true)` + `(jmp, _, _, L_false)` |
-| 335 | `sem_if_then_label(c, label_true)` | 生成 `(label, L_true, _, _)` |
+| 340 | `sem_if_then_label(c, label_true)` | 生成 `(label, L_true, _, _)` |
 | 337–338 | `if TOK_THEN` | 期望 `then` 关键字 → next_token 消费 |
-| 339 | `STATEMENT(c)` | 递归解析 then 分支（可以是任何 STATEMENT） |
+| 344 | `STATEMENT(c)` | 递归解析 then 分支（可以是任何 STATEMENT） |
 | 341–346 | `if TOK_ELSE` 有 else 分支 | next_token 消费 else → `sem_if_then_end(c, label_end)` 生成跳过 else 的 jmp → `sem_if_false_label(c, label_false)` 生成 else 入口标号 → STATEMENT(c) 解析 else 体 → `sem_if_end_label(c, label_end)` 生成出口标号 |
 | 347–348 | `else` 无 else 分支 | `sem_if_false_label(c, label_false)` — false 标号即为唯一起效的出口标号，end 标号不生成 |
 | 350–354 | else | 没有 then → 语法错误 "if 后期望 'then'" |
@@ -334,12 +334,12 @@ while EXPRESSION do STATEMENT
 
 | 行号 | 代码 | 讲解 |
 |------|------|------|
-| 359 | `next_token(c)` | 消费 `while` |
+| 347 | `next_token(c)` | 消费 `while` |
 | 361–362 | `sem_while_begin(c, &label_loop, &label_body, &label_exit)` | 语义动作：分配 3 个标号（loop/body/exit） |
-| 364 | `sem_while_loop_label(c, label_loop)` | 生成 `(label, L_loop, _, _)` |
+| 368 | `sem_while_loop_label(c, label_loop)` | 生成 `(label, L_loop, _, _)` |
 | 366–367 | `parse_expression(c, &cond)` | 解析条件表达式，结果 cond |
-| 369 | `sem_while_check(c, &cond, label_body, label_exit)` | 语义动作：生成 `(jnz, cond, _, L_body)` + `(jmp, _, _, L_exit)` |
-| 370 | `sem_while_body_label(c, label_body)` | 生成 `(label, L_body, _, _)` |
+| 373 | `sem_while_check(c, &cond, label_body, label_exit)` | 语义动作：生成 `(jnz, cond, _, L_body)` + `(jmp, _, _, L_exit)` |
+| 374 | `sem_while_body_label(c, label_body)` | 生成 `(label, L_body, _, _)` |
 | 372–375 | `if TOK_DO` | 期望 do → next_token → STATEMENT(c) 解析循环体 → `sem_while_end(c, label_loop, label_exit)` 生成回跳 `(jmp, _, _, L_loop)` + 出口标号 `(label, L_exit, _, _)` |
 | 376–380 | else | 没有 do → 语法错误 |
 
@@ -359,13 +359,13 @@ while EXPRESSION do STATEMENT
 |------|------|------|
 | 391–392 | 清零错误标志 | error_flag=0，error_msg 置空 |
 | 394–395 | `scanner_scan_all(c)` | **第一遍**——词法分析。一次性扫描整个源程序，生成 Token 序列 + 填充符号表/常数表。失败则返回 0 |
-| 397 | `saved_tok_count` | 保存第一遍扫描得到的 Token 总数。必须保存，因为 scanner_init 会重置 |
+| 401 | `saved_tok_count` | 保存第一遍扫描得到的 Token 总数。必须保存，因为 scanner_init 会重置 |
 | 399–401 | 重置扫描器 | scanner_init 重置 pos 为 0，重新定位到源程序开头（从头再读）。`peek_valid = 0` 清除任何残留 peek。**恢复 token_count** 为第一遍的计数——这样 `token_list[]` 数据不丢失 |
 | 403–406 | 清零中间代码状态 | temp_count=0、label_count=0、quad_count=0、sem_top=0。**符号表 sym_table 和常数表 const_table 保留**——它们在第一遍已填充完毕 |
-| 408 | `next_token(c)` | 读取源程序的第一个 Token |
-| 409 | `PROGRAM(c)` | 启动递归下降——从文法起始符号 PROGRAM 开始 |
+| 412 | `next_token(c)` | 读取源程序的第一个 Token |
+| 413 | `PROGRAM(c)` | 启动递归下降——从文法起始符号 PROGRAM 开始 |
 | 411–412 | 错误检查 | 语法分析中任一子程序发现错误，error_flag 被置 1 → 直接返回 0 |
 | 413–418 | EOF 检查 | 成功解析全部语句后，应该到达文件末尾（TOK_EOF）。如果当前 Token 不是 EOF，说明源程序有"多余输入"——如 `end. x` 中 end 后的 x → 报错 |
-| 420 | `return 1` | 编译成功 |
+| 425 | `return 1` | 编译成功 |
 
 **两遍扫描架构**：第一遍纯词法，快速收集所有 Token 和符号信息；第二遍语法+语义，利用第一遍收集的符号表做分析。这样做的优势是可以先获得完整的标识符列表再开始语法分析。
